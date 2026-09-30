@@ -14,6 +14,7 @@ import {
   ModalBody,
   ModalHeader,
   ModalFooter,
+  Alert,
 } from "@patternfly/react-core";
 // Hooks
 import { addAlert } from "src/store/Global/alerts-slice";
@@ -35,6 +36,8 @@ import { setIsLogin } from "src/store/Global/auth-slice";
 // Navigation
 import { useLocation, useNavigate } from "react-router";
 import { Link } from "react-router";
+import { API_VERSION_BACKUP } from "src/utils/utils";
+import { normalizeLoginWarning } from "src/utils/loginWarning";
 
 interface StateFromSyncOtpPage {
   alertMessage: string;
@@ -47,6 +50,42 @@ const LoginMainPage = () => {
   // Navigate
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Configurable plain-text login warning (from /etc/ipa/default.conf)
+  const [loginWarning, setLoginWarning] = React.useState("");
+
+  React.useEffect(() => {
+    let cancelled = false;
+    const fetchLoginWarning = async () => {
+      try {
+        const response = await fetch("/ipa/i18n_messages", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            method: "i18n_messages",
+            params: [[], { version: API_VERSION_BACKUP }],
+          }),
+        });
+        if (!response.ok) {
+          return;
+        }
+        const data = await response.json();
+        if (cancelled || data.error) {
+          return;
+        }
+        setLoginWarning(normalizeLoginWarning(data?.result?.login_warning));
+      } catch {
+        // Banner is optional; login must still work if fetch fails.
+      }
+    };
+    void fetchLoginWarning();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // There are some cases (e.g., sync OTP token) that the
   //   login page can receive a given state from navigate.
@@ -385,6 +424,18 @@ const LoginMainPage = () => {
     "· To log in with Kerberos, please make sure you have valid tickets (obtainable via kinit) and configured the browser correctly, then click 'Log in'. \n\n" +
     "· To log in with certificate, please make sure you have valid personal certificate.";
 
+  // PatternFly Alert title/children are rendered as text, not HTML.
+  const loginWarningBanner =
+    loginWarning !== "" ? (
+      <Alert
+        variant="warning"
+        isInline
+        title={loginWarning}
+        style={{ marginBottom: "1rem", whiteSpace: "pre-wrap" }}
+        data-cy="login-warning-banner"
+      />
+    ) : null;
+
   return (
     <>
       <LoginPage
@@ -400,6 +451,7 @@ const LoginMainPage = () => {
         socialMediaLoginContent={socialMediaLoginContent}
         socialMediaLoginAriaLabel="Other options to log in"
       >
+        {loginWarningBanner}
         {loginForm}
         {showErrorModal && errorModal(errorMessage)}
       </LoginPage>
