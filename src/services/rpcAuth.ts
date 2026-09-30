@@ -15,6 +15,8 @@ import {
 interface UserPasswordPayload {
   username: string;
   password: string;
+  captchaId?: string;
+  captchaAnswer?: string;
 }
 
 export interface ResetPasswordPayload {
@@ -44,10 +46,34 @@ export interface SyncOtpPayload {
 
 // List of URLs
 const LOGIN_URL = "/ipa/session/login_password";
+const CAPTCHA_URL = "/ipa/session/captcha";
 const KERBEROS_URL = "/ipa/session/login_kerberos";
 const X509_URL = "/ipa/session/login_x509";
 const RESET_PASSWORD_URL = "/ipa/session/change_password";
 const SYNC_OTP_URL = "/ipa/session/sync_token";
+
+export type LoginCaptchaChallenge = {
+  enabled: boolean;
+  id?: string;
+  image?: string;
+  expires_in?: number;
+};
+
+export async function fetchLoginCaptcha(): Promise<LoginCaptchaChallenge | null> {
+  try {
+    const response = await fetch(CAPTCHA_URL, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as LoginCaptchaChallenge;
+  } catch {
+    return null;
+  }
+}
 
 // Utils
 const encodeURIObject = (obj: Record<string, string>) => {
@@ -69,6 +95,10 @@ const extendedApi = api.injectEndpoints({
         const encodedCredentials = encodeURIObject({
           user: payload.username,
           password: payload.password,
+          ...(payload.captchaId ? { captcha_id: payload.captchaId } : {}),
+          ...(payload.captchaAnswer !== undefined
+            ? { captcha_answer: payload.captchaAnswer }
+            : {}),
         });
 
         const loginRequest = {

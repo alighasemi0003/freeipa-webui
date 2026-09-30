@@ -26,6 +26,7 @@ import BackgroundImg from "/assets/images/login-screen-background.jpg";
 // RPC
 import {
   MetaResponse,
+  fetchLoginCaptcha,
   useKrbLoginMutation,
   useUserPasswordLoginMutation,
   useX509LoginMutation,
@@ -109,6 +110,29 @@ const LoginMainPage = () => {
   const [password, setPassword] = React.useState("");
   const [isValidPassword, setIsValidPassword] = React.useState(true);
   const [authenticating, setAuthenticating] = React.useState(false);
+  const [captchaEnabled, setCaptchaEnabled] = React.useState(false);
+  const [captchaId, setCaptchaId] = React.useState("");
+  const [captchaImage, setCaptchaImage] = React.useState("");
+  const [captchaAnswer, setCaptchaAnswer] = React.useState("");
+
+  const refreshCaptcha = React.useCallback(async () => {
+    const data = await fetchLoginCaptcha();
+    if (!data || data.enabled === false || !data.id || !data.image) {
+      setCaptchaEnabled(false);
+      setCaptchaId("");
+      setCaptchaImage("");
+      setCaptchaAnswer("");
+      return;
+    }
+    setCaptchaEnabled(true);
+    setCaptchaId(data.id);
+    setCaptchaImage(data.image);
+    setCaptchaAnswer("");
+  }, []);
+
+  React.useEffect(() => {
+    void refreshCaptcha();
+  }, [refreshCaptcha]);
 
   // Authentication method (assumes user + password by default)
   // - This will help to get the user credentials if the user is logged in via Kerberos
@@ -241,11 +265,18 @@ const LoginMainPage = () => {
         // Show modal with the error
         setShowErrorModal(true);
         setErrorMessage("The password or username you entered is incorrect");
+        void refreshCaptcha();
+        break;
+      case "invalid-captcha":
+        setShowErrorModal(true);
+        setErrorMessage("Invalid security check. Please try again.");
+        void refreshCaptcha();
         break;
       case "user-locked":
         // Show modal with the error
         setShowErrorModal(true);
         setErrorMessage("The user account you entered is locked");
+        void refreshCaptcha();
         break;
       case null:
         // Assume sucessful login
@@ -295,7 +326,12 @@ const LoginMainPage = () => {
         }
       });
     } else {
-      onUserPwdLogin({ username, password }).then((response) => {
+      onUserPwdLogin({
+        username,
+        password,
+        captchaId: captchaEnabled ? captchaId : undefined,
+        captchaAnswer: captchaEnabled ? captchaAnswer : undefined,
+      }).then((response) => {
         if ("error" in response) {
           const receivedError = response.error as MetaResponse;
 
@@ -400,23 +436,63 @@ const LoginMainPage = () => {
   });
 
   const loginForm = (
-    <LoginForm
-      showHelperText={showHelperText}
-      helperText={errorMessage}
-      helperTextIcon={<ExclamationCircleIcon />}
-      usernameLabel="Username"
-      usernameValue={username}
-      onChangeUsername={handleUsernameChange}
-      isValidUsername={isValidUsername}
-      passwordLabel="Password"
-      passwordValue={password}
-      isShowPasswordEnabled
-      onChangePassword={handlePasswordChange}
-      isValidPassword={isValidPassword}
-      onLoginButtonClick={onLoginButtonClick}
-      loginButtonLabel="Log in"
-      isLoginButtonDisabled={authenticating}
-    />
+    <>
+      {captchaEnabled && captchaImage ? (
+        <div
+          style={{ marginBottom: "1rem" }}
+          data-cy="login-captcha"
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              border: "1px solid #bbb",
+              display: "inline-block",
+              background: "#f4f4f4",
+              marginBottom: "0.5rem",
+            }}
+            // Server-generated SVG only; never user-controlled HTML.
+            dangerouslySetInnerHTML={{ __html: captchaImage }}
+          />
+          <div>
+            <Button
+              variant="link"
+              isInline
+              onClick={() => void refreshCaptcha()}
+              data-cy="login-captcha-refresh"
+            >
+              Refresh CAPTCHA
+            </Button>
+          </div>
+          <label htmlFor="login-captcha-answer">Security check</label>
+          <input
+            id="login-captcha-answer"
+            name="captcha_answer"
+            autoComplete="off"
+            value={captchaAnswer}
+            onChange={(e) => setCaptchaAnswer(e.target.value)}
+            aria-label="Security check characters from the image"
+            style={{ display: "block", width: "100%", marginTop: "0.25rem" }}
+          />
+        </div>
+      ) : null}
+      <LoginForm
+        showHelperText={showHelperText}
+        helperText={errorMessage}
+        helperTextIcon={<ExclamationCircleIcon />}
+        usernameLabel="Username"
+        usernameValue={username}
+        onChangeUsername={handleUsernameChange}
+        isValidUsername={isValidUsername}
+        passwordLabel="Password"
+        passwordValue={password}
+        isShowPasswordEnabled
+        onChangePassword={handlePasswordChange}
+        isValidPassword={isValidPassword}
+        onLoginButtonClick={onLoginButtonClick}
+        loginButtonLabel="Log in"
+        isLoginButtonDisabled={authenticating}
+      />
+    </>
   );
 
   const placeHolderText =
