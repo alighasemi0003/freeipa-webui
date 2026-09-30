@@ -30,6 +30,7 @@ export interface PropsToPasswordInput {
   // Optional validation rules to enable helper messages rendering
   rules?: Array<RuleProps>;
   requiredHelperText?: string;
+  autoComplete?: React.ComponentProps<typeof TextInput>["autoComplete"];
 }
 
 // Note - onChange function should trigger validation check (validated prop)
@@ -66,6 +67,7 @@ const PasswordInput = (props: PropsToPasswordInput) => {
             isDisabled={props.isDisabled}
             rules={props.rules!}
             type={props.passwordHidden ? "password" : "text"}
+            autoComplete={props.autoComplete}
           />
         </div>
         <RevealButton
@@ -90,6 +92,7 @@ const PasswordInput = (props: PropsToPasswordInput) => {
             isDisabled={props.isDisabled}
             requiredHelperText={props.requiredHelperText}
             type={props.passwordHidden ? "password" : "text"}
+            autoComplete={props.autoComplete}
           />
         </div>
         <RevealButton
@@ -116,6 +119,7 @@ const PasswordInput = (props: PropsToPasswordInput) => {
           validated={props.validated}
           isRequired={props.isRequired || false}
           isDisabled={props.isDisabled || false}
+          autoComplete={props.autoComplete}
         />
       </InputGroupItem>
       <RevealButton

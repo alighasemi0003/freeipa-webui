@@ -35,6 +35,7 @@ interface InputWithValidationProps {
   rules: Array<RuleProps>;
   showAlways?: boolean; // if true, show helper text even if value is empty
   type?: TextInputProps["type"];
+  autoComplete?: TextInputProps["autoComplete"];
 }
 
 const InputWithValidation = (props: InputWithValidationProps) => {
@@ -85,6 +86,7 @@ const InputWithValidation = (props: InputWithValidationProps) => {
         aria-describedby={nonSuccessRuleIds.join(" ")}
         aria-invalid={ariaInvalid}
         onChange={(_event, value) => props.onChange(value)}
+        autoComplete={props.autoComplete}
       />
       {(props.value || props.showAlways) && (
         <FormHelperText>

@@ -12,6 +12,7 @@ interface InputRequiredTextProps {
   requiredHelperText?: string;
   isDisabled?: boolean;
   type?: TextInputProps["type"];
+  autoComplete?: TextInputProps["autoComplete"];
 }
 
 const InputRequiredText = (props: InputRequiredTextProps) => {
@@ -30,6 +31,7 @@ const InputRequiredText = (props: InputRequiredTextProps) => {
         aria-describedby={helperTextId}
         onChange={(_event, value) => props.onChange(value)}
         isDisabled={props.isDisabled}
+        autoComplete={props.autoComplete}
       />
       {props.value === "" && !props.isDisabled && (
         <HelperTextWithIcon

@@ -167,6 +167,7 @@ const ResetPasswordPage = () => {
           type="text"
           value={uid}
           readOnlyVariant="plain"
+          autoComplete="username"
         />
       </FormGroup>
       <FormGroup label="Current password" fieldId="current-password">
@@ -179,6 +180,7 @@ const ResetPasswordPage = () => {
           onRevealHandler={setCurrentPasswordHidden}
           passwordHidden={currentPasswordHidden}
           isDisabled={!uid}
+          autoComplete="current-password"
         />
       </FormGroup>
       <FormGroup label="New password" fieldId="new-password">
@@ -192,6 +194,7 @@ const ResetPasswordPage = () => {
           passwordHidden={newPasswordHidden}
           isRequired={true}
           isDisabled={!uid}
+          autoComplete="new-password"
         />
       </FormGroup>
       <FormGroup label="Verify password" fieldId="verify-password">
@@ -205,6 +208,7 @@ const ResetPasswordPage = () => {
           passwordHidden={verifyPasswordHidden}
           isRequired={true}
           isDisabled={!uid}
+          autoComplete="new-password"
           rules={[
             {
               id: "verify-match",
@@ -224,6 +228,7 @@ const ResetPasswordPage = () => {
           onRevealHandler={setOtpHidden}
           passwordHidden={otpHidden}
           isDisabled={!uid}
+          autoComplete="one-time-code"
         />
       </FormGroup>
       <ActionGroup>

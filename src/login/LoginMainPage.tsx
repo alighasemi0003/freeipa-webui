@@ -349,6 +349,17 @@ const LoginMainPage = () => {
     </React.Fragment>
   );
 
+  // PatternFly LoginForm does not expose input autocomplete props; set
+  // modern auth tokens on the known field ids after render.
+  React.useLayoutEffect(() => {
+    document
+      .getElementById("pf-login-username-id")
+      ?.setAttribute("autocomplete", "username");
+    document
+      .getElementById("pf-login-password-id")
+      ?.setAttribute("autocomplete", "current-password");
+  });
+
   const loginForm = (
     <LoginForm
       showHelperText={showHelperText}

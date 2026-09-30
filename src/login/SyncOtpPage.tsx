@@ -135,6 +135,7 @@ const SyncOtpPage = () => {
           value={uid}
           onChange={setUid}
           requiredHelperText="Required value"
+          autoComplete="username"
         />
       </FormGroup>
       <FormGroup label="Password" fieldId="password" required>
@@ -147,6 +148,7 @@ const SyncOtpPage = () => {
           onRevealHandler={setPasswordHidden}
           passwordHidden={passwordHidden}
           isRequired={true}
+          autoComplete="current-password"
         />
       </FormGroup>
       <FormGroup label="First OTP" fieldId="firstotp" required>
@@ -159,6 +161,7 @@ const SyncOtpPage = () => {
           onRevealHandler={setFirstOtpHidden}
           passwordHidden={newFirstOtpHidden}
           isRequired={true}
+          autoComplete="one-time-code"
         />
       </FormGroup>
       <FormGroup label="Second OTP" fieldId="secondotp" required>
@@ -171,6 +174,7 @@ const SyncOtpPage = () => {
           onRevealHandler={setSecondOtpHidden}
           passwordHidden={secondOtpHidden}
           isRequired={true}
+          autoComplete="one-time-code"
         />
       </FormGroup>
       <FormGroup label="Token ID" fieldId="tokenid">
