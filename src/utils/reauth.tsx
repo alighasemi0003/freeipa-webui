@@ -9,7 +9,9 @@ import {
   Form,
   FormGroup,
   Modal,
-  ModalVariant,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   TextInput,
   ValidatedOptions,
 } from "@patternfly/react-core";
@@ -137,54 +139,69 @@ export function ReauthDialogHost() {
 
   return (
     <Modal
-      variant={ModalVariant.small}
-      title="Confirm your identity"
+      data-cy="reauth-modal"
+      variant="small"
       isOpen={isOpen}
       onClose={onCancel}
-      actions={[
+    >
+      <ModalHeader
+        title="Confirm your identity"
+        labelId="reauth-modal-title"
+      />
+      <ModalBody id="reauth-modal-body">
+        <p>
+          Re-authentication is required to continue with this sensitive
+          operation.
+        </p>
+        <Form>
+          <FormGroup label="Current password" fieldId="reauth-password">
+            <TextInput
+              data-cy="reauth-password"
+              id="reauth-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(_e, v) => setPassword(v)}
+              validated={
+                failed ? ValidatedOptions.error : ValidatedOptions.default
+              }
+            />
+          </FormGroup>
+          <FormGroup label="OTP (if required)" fieldId="reauth-otp">
+            <TextInput
+              data-cy="reauth-otp"
+              id="reauth-otp"
+              type="password"
+              autoComplete="one-time-code"
+              value={otp}
+              onChange={(_e, v) => setOtp(v)}
+            />
+          </FormGroup>
+          {failed ? (
+            <p role="alert">Authentication failed. Please try again.</p>
+          ) : null}
+        </Form>
+      </ModalBody>
+      <ModalFooter>
         <Button
+          data-cy="reauth-button-confirm"
           key="confirm"
           variant="primary"
           onClick={() => void onConfirm()}
           isDisabled={busy || !password}
         >
           Confirm
-        </Button>,
-        <Button key="cancel" variant="link" onClick={onCancel} isDisabled={busy}>
+        </Button>
+        <Button
+          data-cy="reauth-button-cancel"
+          key="cancel"
+          variant="link"
+          onClick={onCancel}
+          isDisabled={busy}
+        >
           Cancel
-        </Button>,
-      ]}
-    >
-      <p>
-        Re-authentication is required to continue with this sensitive
-        operation.
-      </p>
-      <Form>
-        <FormGroup label="Current password" fieldId="reauth-password">
-          <TextInput
-            id="reauth-password"
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(_e, v) => setPassword(v)}
-            validated={
-              failed ? ValidatedOptions.error : ValidatedOptions.default
-            }
-          />
-        </FormGroup>
-        <FormGroup label="OTP (if required)" fieldId="reauth-otp">
-          <TextInput
-            id="reauth-otp"
-            type="password"
-            autoComplete="one-time-code"
-            value={otp}
-            onChange={(_e, v) => setOtp(v)}
-          />
-        </FormGroup>
-        {failed ? (
-          <p role="alert">Authentication failed. Please try again.</p>
-        ) : null}
-      </Form>
+        </Button>
+      </ModalFooter>
     </Modal>
   );
 }

@@ -254,7 +254,7 @@ const ipaBaseQuery: BaseQueryFn<
   }
   try {
     return await handleReauthAndRetry(
-      () => rawBaseQuery(args, api, extraOptions),
+      async () => rawBaseQuery(args, api, extraOptions),
       false
     );
   } catch {
