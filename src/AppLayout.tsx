@@ -37,6 +37,7 @@ import { setIsLogout } from "./store/Global/auth-slice";
 // RPC
 import { useLogoutMutation } from "./services/rpcAuth";
 import { useGetUserDetailsByUidMutation } from "./services/rpcUsers";
+import { ReauthDialogHost } from "./utils/reauth";
 
 interface PropsToAppLayout {
   loggedInUser: string | null;
@@ -203,6 +204,7 @@ const AppLayout = (props: PropsToAppLayout) => {
       isContentFilled
     >
       <ContextualHelpPanel>{props.children}</ContextualHelpPanel>
+      <ReauthDialogHost />
     </Page>
   );
 };

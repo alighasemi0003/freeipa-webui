@@ -4,9 +4,16 @@ import {
   createApi,
   fetchBaseQuery,
   FetchBaseQueryError,
+  BaseQueryFn,
+  FetchArgs,
+  FetchBaseQueryMeta,
 } from "@reduxjs/toolkit/query/react";
 // Utils
 import { API_VERSION_BACKUP } from "../utils/utils";
+import {
+  handleReauthAndRetry,
+  isReauthRequiredError,
+} from "../utils/reauth";
 import {
   fqdnType,
   Metadata,
@@ -220,6 +227,48 @@ export const getBatchCommand = (commandData: Command[], apiVersion: string) => {
   return payloadBatchParams;
 };
 
+const rawBaseQuery = fetchBaseQuery({ baseUrl: "/" });
+
+type IpaBaseQueryError = FetchBaseQueryError & {
+  data?: { error?: { code?: number; name?: string; message?: string } };
+};
+
+/**
+ * Wrap fetchBaseQuery: on ReauthRequired in JSON-RPC body, prompt once,
+ * verify credentials, and retry the exact request once.
+ */
+const ipaBaseQuery: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError,
+  object,
+  FetchBaseQueryMeta
+> = async (args, api, extraOptions) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+  if (result.error) {
+    return result;
+  }
+  const data = result.data as { error?: { code?: number; name?: string } } | undefined;
+  if (!data || !isReauthRequiredError(data.error)) {
+    return result;
+  }
+  try {
+    return await handleReauthAndRetry(
+      () => rawBaseQuery(args, api, extraOptions),
+      false
+    );
+  } catch {
+    // Keep original ReauthRequired payload for caller error UI.
+    return {
+      error: {
+        status: "CUSTOM_ERROR",
+        data: data,
+        error: "ReauthRequired",
+      } as IpaBaseQueryError,
+    };
+  }
+};
+
 // Endpoints that will be called from anywhere in the application.
 // Two types:
 //   - Queries: https://redux-toolkit.js.org/rtk-query/usage/queries
@@ -229,7 +278,7 @@ export const getBatchCommand = (commandData: Command[], apiVersion: string) => {
 //   endpoint (e.g: `gettingUser`)
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({ baseUrl: "/" }), // TODO: Global settings!
+  baseQuery: ipaBaseQuery,
   // We want to always refetch, because we've managed to mess up
   // the caching logic and this is easier than fixing it :)
   keepUnusedDataFor: 0,
