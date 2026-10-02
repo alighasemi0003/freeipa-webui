@@ -50,6 +50,7 @@ import DisableEnableUsers from "src/components/modals/UserModals/DisableEnableUs
 import DeleteUsers from "src/components/modals/UserModals/DeleteUsers";
 import RebuildAutoMembership from "src/components/modals/RebuildAutoMembership";
 import UnlockUser from "src/components/modals/UserModals/UnlockUser";
+import ForceSignOutUser from "src/components/modals/UserModals/ForceSignOutUser";
 import ResetPassword from "src/components/modals/UserModals/ResetPassword";
 import IssueNewCertificate from "src/components/modals/CertificateModals/IssueNewCertificate";
 import AddOtpToken from "src/components/modals/UserModals/AddOtpToken";
@@ -169,6 +170,13 @@ const UserSettings = (props: PropsToUserSettings) => {
   const [isUnlockModalOpen, setIsUnlockModalOpen] = React.useState(false);
   const onCloseUnlockModal = () => {
     setIsUnlockModalOpen(false);
+  };
+
+  // 'Force Sign Out' option
+  const [isForceSignOutModalOpen, setIsForceSignOutModalOpen] =
+    React.useState(false);
+  const onCloseForceSignOutModal = () => {
+    setIsForceSignOutModalOpen(false);
   };
 
   // Get the status of the 'Unlock' option
@@ -326,6 +334,13 @@ const UserSettings = (props: PropsToUserSettings) => {
       onClick={() => setIsUnlockModalOpen(true)}
     >
       Unlock
+    </DropdownItem>,
+    <DropdownItem
+      data-cy="user-tab-settings-kebab-force-sign-out"
+      key="force-sign-out"
+      onClick={() => setIsForceSignOutModalOpen(true)}
+    >
+      Force Sign Out
     </DropdownItem>,
     <DropdownItem
       data-cy="user-tab-settings-kebab-add-otp-token"
@@ -681,6 +696,13 @@ const UserSettings = (props: PropsToUserSettings) => {
         isOpen={isUnlockModalOpen}
         onClose={onCloseUnlockModal}
         onRefresh={props.onRefresh}
+      />
+      <ForceSignOutUser
+        uid={
+          Array.isArray(props.user.uid) ? props.user.uid[0] : props.user.uid
+        }
+        isOpen={isForceSignOutModalOpen}
+        onClose={onCloseForceSignOutModal}
       />
       <DeleteUsers
         show={isDeleteModalOpen}

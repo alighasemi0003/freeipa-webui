@@ -364,6 +364,22 @@ const extendedApi = api.injectEndpoints({
         });
       },
     }),
+    forceSignOutUser: build.mutation<FindRPCResponse, string>({
+      query: (uid) => {
+        const params = [
+          [],
+          {
+            user: uid,
+            version: API_VERSION_BACKUP,
+          },
+        ];
+
+        return getCommand({
+          method: "session_kill",
+          params: params,
+        });
+      },
+    }),
     activateUser: build.mutation<FindRPCResponse, User[]>({
       query: (query_args) => {
         const batchPayload: Command[] = [];
@@ -663,6 +679,7 @@ export const {
   useEnableUserMutation,
   useDisableUserMutation,
   useUnlockUserMutation,
+  useForceSignOutUserMutation,
   useActivateUserMutation,
   useRestoreUserMutation,
   useGetUserByUidQuery,
