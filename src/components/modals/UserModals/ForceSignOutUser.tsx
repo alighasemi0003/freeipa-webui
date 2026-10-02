@@ -38,32 +38,34 @@ const ForceSignOutUser = (props: propsToForceSignOutUser) => {
     }
     forceSignOutUser(props.uid).then((response) => {
       if ("data" in response) {
-        const summary =
-          response.data?.result?.summary ||
-          "Force Sign Out completed for '" + props.uid + "'";
-        dispatch(
-          addAlert({
-            name: "force-sign-out-success",
-            title: String(summary),
-            variant: "success",
-          })
-        );
-        props.onClose();
-      } else if ("error" in response) {
-        const errorMessage = response.error as ErrorResult;
-        dispatch(
-          addAlert({
-            name: "force-sign-out-error",
-            title: errorMessage.data || "Force Sign Out failed",
-            variant: "danger",
-          })
-        );
-        props.onClose();
+        if (response.data?.result) {
+          const summary =
+            response.data.result.summary ||
+            "Force Sign Out completed for '" + props.uid + "'";
+          dispatch(
+            addAlert({
+              name: "force-sign-out-success",
+              title: String(summary),
+              variant: "success",
+            })
+          );
+          props.onClose();
+        } else if (response.data?.error) {
+          const errorMessage = response.data.error as ErrorResult;
+          dispatch(
+            addAlert({
+              name: "force-sign-out-error",
+              title: errorMessage.message || "Force Sign Out failed",
+              variant: "danger",
+            })
+          );
+          props.onClose();
+        }
       }
     });
   };
 
-  const actions = [
+  const actions: JSX.Element[] = [
     <Button
       data-cy="modal-button-force-sign-out"
       key="force-sign-out"
@@ -86,6 +88,7 @@ const ForceSignOutUser = (props: propsToForceSignOutUser) => {
     <ModalWithFormLayout
       dataCy="force-sign-out-modal"
       variantType="small"
+      modalPosition="top"
       title="Force Sign Out"
       formId="force-sign-out-modal"
       fields={fields}
