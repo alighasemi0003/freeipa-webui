@@ -21,11 +21,25 @@ export const REAUTH_ERROR_NAME = "ReauthRequired";
 export const VERIFY_CREDENTIALS_URL = "/ipa/session/verify_credentials";
 
 export function isReauthRequiredError(error: unknown): boolean {
-  if (!error || typeof error !== "object") {
+  if (!error) {
     return false;
   }
-  const e = error as { code?: number; name?: string };
-  return e.code === REAUTH_ERROR_CODE || e.name === REAUTH_ERROR_NAME;
+  // Batch member results use error_code / error_name with string `error`.
+  if (typeof error === "object") {
+    const e = error as {
+      code?: number;
+      name?: string;
+      error_code?: number;
+      error_name?: string;
+    };
+    return (
+      e.code === REAUTH_ERROR_CODE ||
+      e.error_code === REAUTH_ERROR_CODE ||
+      e.name === REAUTH_ERROR_NAME ||
+      e.error_name === REAUTH_ERROR_NAME
+    );
+  }
+  return false;
 }
 
 export async function verifySessionCredentials(
@@ -150,11 +164,11 @@ export function ReauthDialogHost() {
       />
       <ModalBody id="reauth-modal-body">
         <p>
-          Re-authentication is required to continue with this sensitive
+          For security, confirm your password to continue this sensitive
           operation.
         </p>
         <Form>
-          <FormGroup label="Current password" fieldId="reauth-password">
+          <FormGroup label="Password" fieldId="reauth-password">
             <TextInput
               data-cy="reauth-password"
               id="reauth-password"

@@ -234,8 +234,11 @@ type IpaBaseQueryError = FetchBaseQueryError & {
 };
 
 /**
- * Wrap fetchBaseQuery: on ReauthRequired in JSON-RPC body, prompt once,
- * verify credentials, and retry the exact request once.
+ * Wrap fetchBaseQuery: on ReauthRequired in JSON-RPC body (top-level or
+ * nested batch results), prompt once, verify credentials, and retry.
+ *
+ * For batch responses: only the commands that returned 1205 are resent;
+ * already-successful mutations are kept and not duplicated.
  */
 const ipaBaseQuery: BaseQueryFn<
   string | FetchArgs,
@@ -248,17 +251,102 @@ const ipaBaseQuery: BaseQueryFn<
   if (result.error) {
     return result;
   }
-  const data = result.data as { error?: { code?: number; name?: string } } | undefined;
-  if (!data || !isReauthRequiredError(data.error)) {
+  const data = result.data as
+    | {
+        error?: { code?: number; name?: string };
+        result?: { results?: Array<{ error?: { code?: number; name?: string } }> };
+      }
+    | undefined;
+  if (!data) {
     return result;
   }
+
+  if (isReauthRequiredError(data.error)) {
+    try {
+      return await handleReauthAndRetry(
+        async () => rawBaseQuery(args, api, extraOptions),
+        false
+      );
+    } catch {
+      return {
+        error: {
+          status: "CUSTOM_ERROR",
+          data: data,
+          error: "ReauthRequired",
+        } as IpaBaseQueryError,
+      };
+    }
+  }
+
+  const batchResults = data.result?.results;
+  if (!Array.isArray(batchResults)) {
+    return result;
+  }
+  const reauthIndexes: number[] = [];
+  batchResults.forEach((item, index) => {
+    if (isReauthRequiredError(item) || isReauthRequiredError(item?.error)) {
+      reauthIndexes.push(index);
+    }
+  });
+  if (reauthIndexes.length === 0) {
+    return result;
+  }
+
+  // Batch with nested REAUTH_REQUIRED — step-up then retry only those cmds.
   try {
-    return await handleReauthAndRetry(
-      async () => rawBaseQuery(args, api, extraOptions),
-      false
-    );
+    return await handleReauthAndRetry(async () => {
+      const fetchArgs = typeof args === "string" ? { url: args } : { ...args };
+      const body = (fetchArgs as FetchArgs).body as
+        | {
+            method?: string;
+            params?: [Array<{ method: string; params: unknown[] }>, object];
+          }
+        | undefined;
+      if (
+        !body ||
+        body.method !== "batch" ||
+        !Array.isArray(body.params?.[0])
+      ) {
+        // Unexpected shape: fall back to full request retry.
+        return rawBaseQuery(args, api, extraOptions);
+      }
+      const allCommands = body.params[0];
+      const retryCommands = reauthIndexes.map((i) => allCommands[i]);
+      const retryArgs: FetchArgs = {
+        ...fetchArgs,
+        body: {
+          method: "batch",
+          params: [retryCommands, body.params[1] || {}],
+        },
+      };
+      const retryResult = await rawBaseQuery(retryArgs, api, extraOptions);
+      if (retryResult.error) {
+        return retryResult;
+      }
+      const retryData = retryResult.data as {
+        result?: { results?: unknown[] };
+        error?: unknown;
+      };
+      if (retryData?.error || !Array.isArray(retryData?.result?.results)) {
+        return retryResult;
+      }
+      // Merge: replace only the reauth indices in the original result set.
+      const mergedResults = batchResults.slice();
+      reauthIndexes.forEach((origIndex, j) => {
+        mergedResults[origIndex] = retryData.result!
+          .results![j] as (typeof mergedResults)[number];
+      });
+      return {
+        data: {
+          ...data,
+          result: {
+            ...(data.result || {}),
+            results: mergedResults,
+          },
+        },
+      };
+    }, false);
   } catch {
-    // Keep original ReauthRequired payload for caller error UI.
     return {
       error: {
         status: "CUSTOM_ERROR",
